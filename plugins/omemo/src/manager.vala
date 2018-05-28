@@ -207,6 +207,8 @@ public class Manager : StreamInteractionModule, Object {
         }
         ArrayList<int32> device_list = module.get_device_list(jid);
         db.identity_meta.insert_device_list(jid.bare_jid.to_string(), device_list);
+        if(db.trust.select().with(db.trust.address_name, "=", jid.bare_jid.to_string()).count() == 0)
+            db.trust.insert().value(db.trust.address_name, jid.bare_jid.to_string()).value(db.trust.blind_trust, true).perform();
         int inc = 0;
         foreach (Row row in db.identity_meta.with_address(jid.bare_jid.to_string()).with_null(db.identity_meta.identity_key_public_base64)) {
             module.fetch_bundle(stream, Jid.parse(row[db.identity_meta.address_name]), row[db.identity_meta.device_id]);
@@ -218,7 +220,7 @@ public class Manager : StreamInteractionModule, Object {
     }
 
     public void on_bundle_fetched(Account account, Jid jid, int32 device_id, Bundle bundle) {
-        bool blind_trust = !(db.identity_meta.with_address(jid.bare_jid.to_string()).with(db.identity_meta.blind_trust, "=", false).count() > 0);
+        bool blind_trust = db.trust.row_with(db.trust.address_name, jid.bare_jid.to_string())[db.trust.blind_trust];
         if(blind_trust || db.identity_meta.with_address(jid.bare_jid.to_string())
                 .with(db.identity_meta.device_id, "=", device_id)
                 .with(db.identity_meta.identity_key_public_base64, "=", Base64.encode(bundle.identity_key.serialize()))

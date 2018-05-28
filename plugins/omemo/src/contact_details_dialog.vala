@@ -40,7 +40,7 @@ public class ContactDetailsDialog : Gtk.Dialog {
         int i = 0;
         foreach (Row device in plugin.db.identity_meta.with_address(jid.to_string()).with(plugin.db.identity_meta.requires_trust_decision, "=", false)) {
             if(device[plugin.db.identity_meta.identity_key_public_base64] == null)
-                return;
+                continue;
             add_fingerprint(device, i);
 
             i++;

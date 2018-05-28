@@ -13,14 +13,13 @@ public class Database : Qlite.Database {
         public Column<int> device_id = new Column.Integer("device_id") { not_null = true };
         public Column<string?> identity_key_public_base64 = new Column.Text("identity_key_public_base64");
         public Column<bool> trusted_identity = new Column.BoolInt("trusted_identity") { default = "1" };
-        public Column<bool> blind_trust = new Column.BoolInt("blind_trust") { default = "1" };
         public Column<bool> requires_trust_decision = new Column.BoolInt("requires_trust_decision") { default = "0" };
         public Column<bool> now_active = new Column.BoolInt("now_active") { default = "1" };
         public Column<long> last_active = new Column.Long("last_active");
 
         internal IdentityMetaTable(Database db) {
             base(db, "identity_meta");
-            init({address_name, device_id, identity_key_public_base64, trusted_identity, blind_trust, requires_trust_decision, now_active, last_active});
+            init({address_name, device_id, identity_key_public_base64, trusted_identity, requires_trust_decision, now_active, last_active});
             index("identity_meta_idx", {address_name, device_id}, true);
             index("identity_meta_list_idx", {address_name});
         }
@@ -39,10 +38,6 @@ public class Database : Qlite.Database {
                         .value(this.last_active, (long) new DateTime.now_utc().to_unix())
                         .perform();
             }
-        }
-
-        public void set_blind_trust(string address_name, bool blind_trust) {
-            update().with(this.address_name, "=", address_name).set(this.blind_trust, blind_trust).perform();
         }
 
         public int64 insert_device_bundle(string address_name, int device_id, Bundle bundle) {
@@ -76,6 +71,17 @@ public class Database : Qlite.Database {
         internal IdentityTable(Database db) {
             base(db, "identity");
             init({id, account_id, device_id, identity_key_private_base64, identity_key_public_base64});
+        }
+    }
+
+    public class TrustTable : Table {
+        public Column<string> address_name = new Column.Text("address_name") { unique = true };
+        public Column<bool> blind_trust = new Column.BoolInt("blind_trust") { default = "1" } ;
+
+        internal TrustTable(Database db) {
+            base(db, "trust");
+            init({address_name, blind_trust});
+            index("trust_idx", {address_name}, true);
         }
     }
 
@@ -124,6 +130,7 @@ public class Database : Qlite.Database {
     public SignedPreKeyTable signed_pre_key { get; private set; }
     public PreKeyTable pre_key { get; private set; }
     public SessionTable session { get; private set; }
+    public TrustTable trust { get; private set; }
 
     public Database(string fileName) {
         base(fileName, VERSION);
@@ -132,7 +139,8 @@ public class Database : Qlite.Database {
         signed_pre_key = new SignedPreKeyTable(this);
         pre_key = new PreKeyTable(this);
         session = new SessionTable(this);
-        init({identity_meta, identity, signed_pre_key, pre_key, session});
+        trust = new TrustTable(this);
+        init({identity_meta, identity, signed_pre_key, pre_key, session, trust});
         try {
             exec("PRAGMA synchronous=0");
         } catch (Error e) { }
