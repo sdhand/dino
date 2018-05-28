@@ -12,16 +12,14 @@ public class DeviceNotificationPopulator : ConversationItemPopulator, Object {
     private Plugin plugin;
     private Conversation? current_conversation;
     private ConversationItemCollection? item_collection;
-    private Database db;
 
-    public DeviceNotificationPopulator(Plugin plugin, StreamInteractor stream_interactor, Database db) {
+    public DeviceNotificationPopulator(Plugin plugin, StreamInteractor stream_interactor) {
         this.stream_interactor = stream_interactor;
         this.plugin = plugin;
-        this.db = db;
     }
 
     public bool has_new_devices(Jid jid) {
-        return db.identity_meta.with_address(jid.bare_jid.to_string()).with(db.identity_meta.requires_trust_decision, "=", true).count() > 0;
+        return plugin.db.identity_meta.with_address(jid.bare_jid.to_string()).with(plugin.db.identity_meta.requires_trust_decision, "=", true).count() > 0;
     }
 
     public void init(Conversation conversation, ConversationItemCollection item_collection, Plugins.WidgetType type) {

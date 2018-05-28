@@ -37,7 +37,7 @@ public class Plugin : RootInterface, Object {
         this.list_entry = new EncryptionListEntry(this);
         this.settings_entry = new AccountSettingsEntry(this);
         this.contact_details_provider = new ContactDetailsProvider(this);
-        this.device_notification_populator = new DeviceNotificationPopulator(this, this.app.stream_interactor, this.db);
+        this.device_notification_populator = new DeviceNotificationPopulator(this, this.app.stream_interactor);
         this.app.plugin_registry.register_encryption_list_entry(list_entry);
         this.app.plugin_registry.register_account_settings_entry(settings_entry);
         this.app.plugin_registry.register_contact_details_entry(contact_details_provider);
