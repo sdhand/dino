@@ -218,7 +218,16 @@ public class Manager : StreamInteractionModule, Object {
     }
 
     public void on_bundle_fetched(Account account, Jid jid, int32 device_id, Bundle bundle) {
-        db.identity_meta.insert_device_bundle(jid.bare_jid.to_string(), device_id, bundle);
+        bool blind_trust = !(db.identity_meta.with_address(jid.bare_jid.to_string()).with(db.identity_meta.blind_trust, "=", false).count() > 0);
+        if(blind_trust || db.identity_meta.with_address(jid.bare_jid.to_string())
+                .with(db.identity_meta.device_id, "=", device_id)
+                .with(db.identity_meta.identity_key_public_base64, "=", Base64.encode(bundle.identity_key.serialize()))
+                .count() != 0
+        ) {
+            db.identity_meta.insert_device_bundle(jid.bare_jid.to_string(), device_id, bundle);
+        } else {
+            db.identity_meta.insert_new_device(jid.bare_jid.to_string(), device_id, bundle);
+        }
     }
 
     private void on_store_created(Account account, Store store) {

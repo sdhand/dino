@@ -6,19 +6,21 @@ using Dino.Entities;
 namespace Dino.Plugins.Omemo {
 
 public class Database : Qlite.Database {
-    private const int VERSION = 1;
+    private const int VERSION = 2;
 
     public class IdentityMetaTable : Table {
         public Column<string> address_name = new Column.Text("address_name") { not_null = true };
         public Column<int> device_id = new Column.Integer("device_id") { not_null = true };
         public Column<string?> identity_key_public_base64 = new Column.Text("identity_key_public_base64");
-        public Column<bool> trusted_identity = new Column.BoolInt("trusted_identity") { default = "0" };
+        public Column<bool> trusted_identity = new Column.BoolInt("trusted_identity") { default = "1" };
+        public Column<bool> blind_trust = new Column.BoolInt("blind_trust") { default = "1" };
+        public Column<bool> requires_trust_decision = new Column.BoolInt("requires_trust_decision") { default = "0" };
         public Column<bool> now_active = new Column.BoolInt("now_active") { default = "1" };
         public Column<long> last_active = new Column.Long("last_active");
 
         internal IdentityMetaTable(Database db) {
             base(db, "identity_meta");
-            init({address_name, device_id, identity_key_public_base64, trusted_identity, now_active, last_active});
+            init({address_name, device_id, identity_key_public_base64, trusted_identity, blind_trust, requires_trust_decision, now_active, last_active});
             index("identity_meta_idx", {address_name, device_id}, true);
             index("identity_meta_list_idx", {address_name});
         }
@@ -39,6 +41,10 @@ public class Database : Qlite.Database {
             }
         }
 
+        public void set_blind_trust(string address_name, bool blind_trust) {
+            update().with(this.address_name, "=", address_name).set(this.blind_trust, blind_trust).perform();
+        }
+
         public int64 insert_device_bundle(string address_name, int device_id, Bundle bundle) {
             if (bundle == null || bundle.identity_key == null) return -1;
             return upsert()
@@ -46,6 +52,17 @@ public class Database : Qlite.Database {
                     .value(this.device_id, device_id, true)
                     .value(this.identity_key_public_base64, Base64.encode(bundle.identity_key.serialize()))
                     .perform();
+        }
+
+        public int64 insert_new_device(string address_name, int device_id, Bundle bundle) {
+            if (bundle == null || bundle.identity_key == null) return -1;
+            return upsert()
+                .value(this.address_name, address_name, true)
+                .value(this.device_id, device_id, true)
+                .value(this.identity_key_public_base64, Base64.encode(bundle.identity_key.serialize()))
+                .value(this.trusted_identity, false)
+                .value(this.requires_trust_decision, true)
+                .perform();
         }
     }
 
