@@ -42,7 +42,7 @@ public class Manager : StreamInteractionModule, Object {
             will_send_now = false;
             if (new_try.other_failure > 0 || (new_try.other_lost == new_try.other_devices && new_try.other_devices > 0)) {
                 msg.marked = Entities.Message.Marked.WONTSEND;
-            } else if (new_try.other_unknown > 0 || new_try.own_devices == 0) {
+            } else if (new_try.other_unknown > 0 || new_try.own_unknown > 0 || !new_try.other_list || !new_try.own_list || new_try.own_devices == 0) {
                 msg.marked = Entities.Message.Marked.UNSENT;
             } else if (!new_try.encrypted) {
                 msg.marked = Entities.Message.Marked.WONTSEND;
