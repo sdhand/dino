@@ -1,4 +1,5 @@
 using Gtk;
+using Xmpp;
 using Gee;
 using Qlite;
 using Dino.Entities;
@@ -9,22 +10,29 @@ namespace Dino.Plugins.Omemo {
 public class ContactDetailsDialog : Gtk.Dialog {
 
     private Plugin plugin;
-    private Conversation conversation;
 
     [GtkChild] private Grid fingerprints;
 
-    public ContactDetailsDialog(Plugin plugin, ArrayList<Row> devices) {
+    public ContactDetailsDialog(Plugin plugin, Jid jid) {
         Object(use_header_bar : 1);
         this.plugin = plugin;
-        this.conversation = conversation;
 
         int i = 0;
-        foreach (Row device in devices) {
+        foreach (Row device in plugin.db.identity_meta.with_address(jid.to_string())) {
+            if(device[plugin.db.identity_meta.identity_key_public_base64] == null)
+                continue;
 
             string res = fingerprint_markup(fingerprint_from_base64(device[plugin.db.identity_meta.identity_key_public_base64]));
             Label lbl = new Label(res) 
-                { use_markup=true, justify=Justification.RIGHT, visible=true, margin = 8, halign = Alignment.START, valign = Alignment.CENTER };
-            Switch tgl = new Switch() {visible = true, halign = Alignment.END, valign = Alignment.CENTER, margin = 8, hexpand = true };
+                { use_markup=true, justify=Justification.RIGHT, visible=true, margin = 8, halign = Align.START, valign = Align.CENTER };
+            Switch tgl = new Switch() {visible = true, halign = Align.END, valign = Align.CENTER, margin = 8, hexpand = true, active = device[plugin.db.identity_meta.trusted_identity] };
+            tgl.state_set.connect((active) => {
+                plugin.db.identity_meta.update()
+                    .with(plugin.db.identity_meta.device_id, "=", device[plugin.db.identity_meta.device_id])
+                    .set(plugin.db.identity_meta.trusted_identity, active).perform();
+
+                return false;
+            });
 
             fingerprints.attach(lbl, 0, i);
             fingerprints.attach(tgl, 1, i);

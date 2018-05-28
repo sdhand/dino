@@ -9,7 +9,6 @@ public class ContactDetailsProvider : Plugins.ContactDetailsProvider, Object {
     public string id { get { return "omemo_info"; } }
 
     private Plugin plugin;
-    private Button btn;
 
     public ContactDetailsProvider(Plugin plugin) {
         this.plugin = plugin;
@@ -18,15 +17,14 @@ public class ContactDetailsProvider : Plugins.ContactDetailsProvider, Object {
     public void populate(Conversation conversation, Plugins.ContactDetails contact_details, WidgetType type) {
         if (conversation.type_ == Conversation.Type.CHAT && type == WidgetType.GTK) {
 
-            ArrayList<Row> devices = new ArrayList<Row> ();
-
+            int i = 0;
             foreach (Row row in plugin.db.identity_meta.with_address(conversation.counterpart.to_string())) {
                 if (row[plugin.db.identity_meta.identity_key_public_base64] != null) {
-                    devices.add(row);
+                    i++;
                 }
             }
 
-            if (devices.size > 0) {
+            if (i > 0) {
                 Button btn = new Button();
                 btn.image = new Image.from_icon_name("view-list-symbolic", IconSize.BUTTON);
                 btn.relief = ReliefStyle.NONE;
@@ -34,12 +32,12 @@ public class ContactDetailsProvider : Plugins.ContactDetailsProvider, Object {
                 btn.valign = Align.CENTER;
                 btn.clicked.connect(() => {
                     btn.activate();
-                    ContactDetailsDialog dialog = new ContactDetailsDialog(plugin, devices);
+                    ContactDetailsDialog dialog = new ContactDetailsDialog(plugin, conversation.counterpart);
                     dialog.set_transient_for((Window) btn.get_toplevel());
                     dialog.present();
                 });
 
-                contact_details.add(_("Encryption"), "OMEMO", n("%d OMEMO device", "%d OMEMO devices", devices.size).printf(devices.size), btn);
+                contact_details.add(_("Encryption"), "OMEMO", n("%d OMEMO device", "%d OMEMO devices", i).printf(i), btn);
             }
         }
     }
